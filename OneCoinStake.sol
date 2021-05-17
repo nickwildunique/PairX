@@ -180,10 +180,11 @@ contract OneCoinStake {
     function emergencyWithdraw() public {
         PoolInfo storage pool = poolInfo;
         UserInfo storage user = userInfo[msg.sender];
-        pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        uint256 trans_amount = user.amount;
+        pool.lpToken.safeTransfer(address(msg.sender), trans_amount);
         user.amount = 0;
         user.rewardDebt = 0;
-        emit EmergencyWithdraw(msg.sender, user.amount);
+        emit EmergencyWithdraw(msg.sender, trans_amount);
     }
 
     // Withdraw reward. EMERGENCY ONLY.
