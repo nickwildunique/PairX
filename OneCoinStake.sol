@@ -39,7 +39,7 @@ contract OneCoinStake {
     // The timestamp when CAKE mining ends.
     uint256 public bonusEndTime;
     //Allow to deposit.
-    bool private canDeposit = true;
+    bool public canDeposit = true;
 
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
@@ -160,18 +160,15 @@ contract OneCoinStake {
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool();
-        uint256 pending =
-            user.amount.mul(pool.accCakePerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+        uint256 pending = user.amount.mul(pool.accCakePerShare).div(1e12).sub(user.rewardDebt);
+        user.amount = user.amount.sub(_amount);
+        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
         if (pending > 0) {
             rewardToken.safeTransfer(address(msg.sender), pending);
         }
         if (_amount > 0) {
-            user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCakePerShare).div(1e12);
 
         emit Withdraw(msg.sender, _amount);
     }
@@ -181,9 +178,10 @@ contract OneCoinStake {
         PoolInfo storage pool = poolInfo;
         UserInfo storage user = userInfo[msg.sender];
         uint256 trans_amount = user.amount;
-        pool.lpToken.safeTransfer(address(msg.sender), trans_amount);
+        require(trans_amount > 0, "have no stake");
         user.amount = 0;
         user.rewardDebt = 0;
+        pool.lpToken.safeTransfer(address(msg.sender), trans_amount);
         emit EmergencyWithdraw(msg.sender, trans_amount);
     }
 
