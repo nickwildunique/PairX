@@ -230,7 +230,7 @@ contract PairLon {
         if (lossLon > 0 && periods[msg.sender] < periodNow) {
             reward = totalReward.mul(balances[msg.sender]).div(calcLon);
             uint256 conversion = calcLon.sub(lossLon).mul(balances[msg.sender]).div(calcLon);
-            depositLon = depositLon.sub(conversion).add(conversion).sub(wad);
+            depositLon = depositLon.sub(balances[msg.sender]).add(conversion).sub(wad);
             balances[msg.sender] = conversion.sub(wad);
         } else {
             if (periods[msg.sender] < periodNow) reward = totalReward.mul(balances[msg.sender]).div(calcLon);
@@ -250,7 +250,7 @@ contract PairLon {
         if (lossLon > 0 && periods[userAddr] < periodNow) {
             reward = totalReward.mul(balances[userAddr]).div(calcLon);
             uint256 conversion = calcLon.sub(lossLon).mul(balances[userAddr]).div(calcLon);
-            depositLon = depositLon.sub(conversion).add(conversion).sub(wad);
+            depositLon = depositLon.sub(balances[userAddr]).add(conversion).sub(wad);
             balances[userAddr] = conversion.sub(wad);
         } else {
             if (periods[userAddr] < periodNow) reward = totalReward.mul(balances[userAddr]).div(calcLon);
@@ -326,7 +326,7 @@ contract PairLon {
     function closePair() public {
         require(msg.sender == manager, "Only managerAddr can closePair.");
         uint256 usdtAmount = IERC20(usdtAddr).balanceOf(address(this));
-        uint256 lonAmount = IERC20(lonAddr).balanceOf(address(this)) - calcLon;
+        uint256 lonAmount = IERC20(lonAddr).balanceOf(address(this)) - calcLon + lossLon;
         TransferHelper.safeTransfer(usdtAddr, owner, usdtAmount);
         TransferHelper.safeTransfer(lonAddr, owner, lonAmount);
     }
