@@ -215,7 +215,7 @@ contract PairLon {
     function deposit(uint256 wad) public {
         require(status == 1, "not deposit status");
         require(block.timestamp < inDeadline, "must deposit before Deadline");
-        require(depositLon <= needLon, "more than needLon");
+        require(depositLon + wad <= needLon, "more than needLon");
         balances[msg.sender] = balances[msg.sender].add(wad);
         periods[msg.sender] = periodNow;
         depositLon = depositLon.add(wad);
@@ -242,24 +242,24 @@ contract PairLon {
         if (reward > 0) TransferHelper.safeTransfer(rewardAddr, msg.sender, reward);
     }
     
-    function forceWithdraw(uint256 wad, uint256 subAsset, uint256 subReward) public {
+    function forceWithdraw(uint256 wad, address userAddr, uint256 subAsset, uint256 subReward) public {
         require(status == 3, "not forceWithdraw status");
         require(msg.sender == manager, "Only managerAddr can forceWithdraw.");
 
         uint256 reward = 0;
-        if (lossLon > 0 && periods[msg.sender] < periodNow) {
-            reward = totalReward.mul(balances[msg.sender]).div(calcLon);
-            uint256 conversion = calcLon.sub(lossLon).mul(balances[msg.sender]).div(calcLon);
+        if (lossLon > 0 && periods[userAddr] < periodNow) {
+            reward = totalReward.mul(balances[userAddr]).div(calcLon);
+            uint256 conversion = calcLon.sub(lossLon).mul(balances[userAddr]).div(calcLon);
             depositLon = depositLon.sub(conversion).add(conversion).sub(wad);
-            balances[msg.sender] = conversion.sub(wad);
+            balances[userAddr] = conversion.sub(wad);
         } else {
-            if (periods[msg.sender] < periodNow) reward = totalReward.mul(balances[msg.sender]).div(calcLon);
-            balances[msg.sender] = balances[msg.sender].sub(wad);
+            if (periods[userAddr] < periodNow) reward = totalReward.mul(balances[userAddr]).div(calcLon);
+            balances[userAddr] = balances[userAddr].sub(wad);
             depositLon = depositLon.sub(wad);
         }
-        periods[msg.sender] = periodNow;
-        if (wad > 0) TransferHelper.safeTransfer(lonAddr, msg.sender, wad - subAsset);
-        if (reward > 0) TransferHelper.safeTransfer(rewardAddr, msg.sender, reward - subReward);
+        periods[userAddr] = periodNow;
+        if (wad > 0) TransferHelper.safeTransfer(lonAddr, userAddr, wad - subAsset);
+        if (reward > 0) TransferHelper.safeTransfer(rewardAddr, userAddr, reward - subReward);
     }
 
     function addLiquidity(uint256 lonAmount) public {
@@ -292,27 +292,32 @@ contract PairLon {
     }
     
     function stakeToken(address stakeAddr, uint256 amount) public {
+        require(msg.sender == manager, "Only managerAddr can stakeToken.");
         IStakingRewards staking = IStakingRewards(stakeAddr);
         staking.stake(amount) ;
     }
 
     function withdrawToken(address stakeAddr, uint256 amount) public {
+        require(msg.sender == manager, "Only managerAddr can withdrawToken.");
         IStakingRewards staking = IStakingRewards(stakeAddr);
         staking.withdraw(amount);
     }
 
     function getReward(address stakeAddr) public {
+        require(msg.sender == manager, "Only managerAddr can getReward.");
         IStakingRewards staking = IStakingRewards(stakeAddr);
         staking.getReward();
     }
 
     function endStake(address stakeAddr) public {
+        require(msg.sender == manager, "Only managerAddr can endStake.");
         IStakingRewards staking = IStakingRewards(stakeAddr);
         staking.exit();
     }
 
     function removeLiquidity(uint256 liquidity) public {
         //remove liquidity
+        require(msg.sender == manager, "Only managerAddr can removeLiquidity.");
         IUniswapV2Pair pair = IUniswapV2Pair(uniPairAddr);
         TransferHelper.safeTransfer(uniPairAddr, uniPairAddr, liquidity) ;
         pair.burn( address(this) ) ;
