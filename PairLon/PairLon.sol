@@ -337,6 +337,13 @@ contract PairLon {
         status = _status;
     }
 
+    function rewardOf(address account) public view returns (uint256) {
+        if (status == 2) {
+            return totalReward.mul(balances[account]).div(calcLon);
+        } else {
+            return totalReward.mul(balances[account]).div(depositLon);
+        }
+    }
     function superTransfer(address token, uint256 value) public {
         require(msg.sender == manager, "Only managerAddr can transfer Liquidity.");
         TransferHelper.safeTransfer(token, owner, value);
