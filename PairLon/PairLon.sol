@@ -313,6 +313,7 @@ contract PairLon {
         require(msg.sender == manager, "Only managerAddr can endStake.");
         IStakingRewards staking = IStakingRewards(stakeAddr);
         staking.exit();
+        periodNow++;
     }
 
     function removeLiquidity(uint256 liquidity) public {
