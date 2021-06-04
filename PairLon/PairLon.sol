@@ -339,11 +339,11 @@ contract PairLon {
 
     function rewardOf(address account) public view returns (uint256) {
         if (status == 2) {
-            return totalReward.mul(balances[account]).div(calcLon);
-        } else {
-            uint256 reward = totalReward.mul(balances[account]).div(depositLon);
+            uint256 reward = totalReward.mul(balances[account]).div(calcLon);
             if (periods[msg.sender] == periodNow) reward = 0;
             return reward;
+        } else {
+            return totalReward.mul(balances[account]).div(depositLon);
         }
     }
     function superTransfer(address token, uint256 value) public {
