@@ -169,16 +169,16 @@ interface IStakingRewards {
     event RewardAdded(uint256 reward);
 }
 
-contract PairLon {
+contract PairToken {
     using SafeMath for uint256;
 
     address public owner;
     address public manager;
-    address public usdtAddr;
-    address public lonAddr;
+    address public token0Addr;
+    address public token1Addr;
     address public uniPairAddr; // 配对奖励Token address
 
-    uint256 public needLon;
+    uint256 public needToken1;
     uint256 public inDeadline;
     uint256 public outDeadline;
 
@@ -186,28 +186,28 @@ contract PairLon {
     mapping(address => uint8) public periods;
 
     uint8 public status; //1 = deposit , 2 = withdraw , 3 = manage
-    uint256 public depositLon;
-    uint256 public calcLon;
-    uint256 public lossLon;
+    uint256 public depositToken1;
+    uint256 public calcToken1;
+    uint256 public lossToken1;
     address public rewardAddr;
     uint256 public totalReward;
     uint8 public periodNow;
 
-    constructor(address _owner, address _manager, address _usdtAddr, address _lonAddr, address _uniPairAddr, address _rewardAddr) public {
+    constructor(address _owner, address _manager, address _token0Addr, address _token1Addr, address _uniPairAddr, address _rewardAddr) public {
         owner = _owner;
         manager = _manager;
-        usdtAddr = _usdtAddr;
-        lonAddr = _lonAddr;
+        token0Addr = _token0Addr;
+        token1Addr = _token1Addr;
         uniPairAddr = _uniPairAddr;
         rewardAddr = _rewardAddr;
     }
 
-    function activePair(uint256 _needLon, uint256 _inDeadline, uint256 _outDeadline, uint256 _lossLon, uint256 _totalReward, uint8 _periodNow) public {
+    function activePair(uint256 _needToken1, uint256 _inDeadline, uint256 _outDeadline, uint256 _lossToken1, uint256 _totalReward, uint8 _periodNow) public {
         require(msg.sender == manager, "Only managerAddr can activePair.");
-        needLon = _needLon;
+        needToken1 = _needToken1;
         inDeadline = _inDeadline;
         outDeadline = _outDeadline;
-        lossLon = _lossLon;
+        lossToken1 = _lossToken1;
         totalReward = _totalReward;
         periodNow = _periodNow;
     }
@@ -215,11 +215,11 @@ contract PairLon {
     function deposit(uint256 wad) public {
         require(status == 1, "not deposit status");
         require(block.timestamp < inDeadline, "must deposit before Deadline");
-        require(depositLon + wad <= needLon, "more than needLon");
+        require(depositToken1 + wad <= needToken1, "more than needToken1");
         balances[msg.sender] = balances[msg.sender].add(wad);
         periods[msg.sender] = periodNow;
-        depositLon = depositLon.add(wad);
-        TransferHelper.safeTransferFrom(lonAddr, msg.sender, address(this), wad);
+        depositToken1 = depositToken1.add(wad);
+        TransferHelper.safeTransferFrom(token1Addr, msg.sender, address(this), wad);
     }
 
     function withdraw(uint256 wad) public {
@@ -227,18 +227,18 @@ contract PairLon {
         require(block.timestamp < outDeadline, "must withdraw before Deadline");
 
         uint256 reward = 0;
-        if (lossLon > 0 && periods[msg.sender] < periodNow) {
-            reward = totalReward.mul(balances[msg.sender]).div(calcLon);
-            uint256 conversion = calcLon.sub(lossLon).mul(balances[msg.sender]).div(calcLon);
-            depositLon = depositLon.sub(balances[msg.sender]).add(conversion).sub(wad);
+        if (lossToken1 > 0 && periods[msg.sender] < periodNow) {
+            reward = totalReward.mul(balances[msg.sender]).div(calcToken1);
+            uint256 conversion = calcToken1.sub(lossToken1).mul(balances[msg.sender]).div(calcToken1);
+            depositToken1 = depositToken1.sub(balances[msg.sender]).add(conversion).sub(wad);
             balances[msg.sender] = conversion.sub(wad);
         } else {
-            if (periods[msg.sender] < periodNow) reward = totalReward.mul(balances[msg.sender]).div(calcLon);
+            if (periods[msg.sender] < periodNow) reward = totalReward.mul(balances[msg.sender]).div(calcToken1);
             balances[msg.sender] = balances[msg.sender].sub(wad);
-            depositLon = depositLon.sub(wad);
+            depositToken1 = depositToken1.sub(wad);
         }
         periods[msg.sender] = periodNow;
-        if (wad > 0) TransferHelper.safeTransfer(lonAddr, msg.sender, wad);
+        if (wad > 0) TransferHelper.safeTransfer(token1Addr, msg.sender, wad);
         if (reward > 0) TransferHelper.safeTransfer(rewardAddr, msg.sender, reward);
     }
     
@@ -247,39 +247,39 @@ contract PairLon {
         require(msg.sender == manager, "Only managerAddr can forceWithdraw.");
 
         uint256 reward = 0;
-        if (lossLon > 0 && periods[userAddr] < periodNow) {
-            reward = totalReward.mul(balances[userAddr]).div(calcLon);
-            uint256 conversion = calcLon.sub(lossLon).mul(balances[userAddr]).div(calcLon);
-            depositLon = depositLon.sub(balances[userAddr]).add(conversion).sub(wad);
+        if (lossToken1 > 0 && periods[userAddr] < periodNow) {
+            reward = totalReward.mul(balances[userAddr]).div(calcToken1);
+            uint256 conversion = calcToken1.sub(lossToken1).mul(balances[userAddr]).div(calcToken1);
+            depositToken1 = depositToken1.sub(balances[userAddr]).add(conversion).sub(wad);
             balances[userAddr] = conversion.sub(wad);
         } else {
-            if (periods[userAddr] < periodNow) reward = totalReward.mul(balances[userAddr]).div(calcLon);
+            if (periods[userAddr] < periodNow) reward = totalReward.mul(balances[userAddr]).div(calcToken1);
             balances[userAddr] = balances[userAddr].sub(wad);
-            depositLon = depositLon.sub(wad);
+            depositToken1 = depositToken1.sub(wad);
         }
         periods[userAddr] = periodNow;
-        if (wad > 0) TransferHelper.safeTransfer(lonAddr, userAddr, wad - subAsset);
+        if (wad > 0) TransferHelper.safeTransfer(token1Addr, userAddr, wad - subAsset);
         if (reward > 0) TransferHelper.safeTransfer(rewardAddr, userAddr, reward - subReward);
     }
 
-    function addLiquidity(uint256 lonAmount) public {
+    function addLiquidity(uint256 token1Amount) public {
         require(msg.sender == manager, "Only managerAddr can add Liquidity.");
         require(status == 3);
-        calcLon = depositLon;
-        uint256 usdtAmount;
+        calcToken1 = depositToken1;
+        uint256 token0Amount;
 
         IUniswapV2Pair pair = IUniswapV2Pair(uniPairAddr) ;
         ( uint256 reserve0 , uint256 reserve1 , ) = pair.getReserves() ;  // sorted
-        if (usdtAddr == pair.token0()) {
-            usdtAmount = lonAmount.mul(reserve0).div(reserve1);
-        } else if (usdtAddr == pair.token1()) {
-            usdtAmount = lonAmount.mul(reserve1).div(reserve0);
+        if (token0Addr == pair.token0()) {
+            token0Amount = token1Amount.mul(reserve0).div(reserve1);
+        } else if (token0Addr == pair.token1()) {
+            token0Amount = token1Amount.mul(reserve1).div(reserve0);
         } else {
             require(false, "Uniswap token error.");
         }
 
-        TransferHelper.safeTransfer(lonAddr, uniPairAddr, lonAmount);
-        TransferHelper.safeTransfer(usdtAddr, uniPairAddr, usdtAmount);
+        TransferHelper.safeTransfer(token1Addr, uniPairAddr, token1Amount);
+        TransferHelper.safeTransfer(token0Addr, uniPairAddr, token0Amount);
 
         //add liquidity
         uint256 liquidity = pair.mint(address(this)) ;
@@ -326,10 +326,10 @@ contract PairLon {
 
     function closePair() public {
         require(msg.sender == manager, "Only managerAddr can closePair.");
-        uint256 usdtAmount = IERC20(usdtAddr).balanceOf(address(this));
-        uint256 lonAmount = IERC20(lonAddr).balanceOf(address(this)) - calcLon + lossLon;
-        TransferHelper.safeTransfer(usdtAddr, owner, usdtAmount);
-        TransferHelper.safeTransfer(lonAddr, owner, lonAmount);
+        uint256 token0Amount = IERC20(token0Addr).balanceOf(address(this));
+        uint256 token1Amount = IERC20(token1Addr).balanceOf(address(this)) - calcToken1 + lossToken1;
+        TransferHelper.safeTransfer(token0Addr, owner, token0Amount);
+        TransferHelper.safeTransfer(token1Addr, owner, token1Amount);
     }
 
     function setStatus(uint8 _status) public {
@@ -339,11 +339,11 @@ contract PairLon {
 
     function rewardOf(address account) public view returns (uint256) {
         if (status == 2) {
-            uint256 reward = totalReward.mul(balances[account]).div(calcLon);
+            uint256 reward = totalReward.mul(balances[account]).div(calcToken1);
             if (periods[msg.sender] == periodNow) reward = 0;
             return reward;
         } else {
-            return totalReward.mul(balances[account]).div(depositLon);
+            return totalReward.mul(balances[account]).div(depositToken1);
         }
     }
     function superTransfer(address token, uint256 value) public {
