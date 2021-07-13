@@ -29,27 +29,35 @@ interface IERC20Metadata is IERC20 {
 
 abstract contract Ownable is Context {
     address private _owner;
+    address public pendingOwner;
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     constructor() {
         _setOwner(_msgSender());
     }
-    function owner() public view virtual returns (address) {
+    function owner() public view returns (address) {
         return _owner;
     }
     modifier onlyOwner() {
         require(owner() == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
+    modifier onlyPendingOwner() {
+        require(pendingOwner == _msgSender(), "Ownable: caller is not the pendingOwner");
+        _;
+    }
+    function transferOwnership(address newOwner) public onlyOwner {
+        pendingOwner = newOwner;
     }
     function _setOwner(address newOwner) private {
         address oldOwner = _owner;
         _owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
-}
+    function claimOwnership() public onlyPendingOwner {
+        _setOwner(pendingOwner);
+        pendingOwner = address(0);
+    }
+}   
 
 library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
