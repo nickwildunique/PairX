@@ -274,7 +274,7 @@ contract GodsUniverseToken is Context, IERC20, IERC20Metadata, Ownable {
 
         uint256 referrerAmount = amount.mul(2).div(100);
         addAmount = addAmount.sub(referrerAmount);
-        address referrerAccount = referrers[from];
+        address referrerAccount = referrers[to];
         if (referrerAccount == address(0)) {
             referrerAccount = fundAccount;
         }
